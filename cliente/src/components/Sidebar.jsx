@@ -54,9 +54,9 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }) {
             roles: ['administrador', 'usuario'], // Ambos roles pueden ver este enlace
         },
         {
-            label: "Planificación",
+            label: "Usuarios",
             icon: <MdCalendarMonth />,
-            to: "/planificacion",
+            to: "/usuarios",
             roles: ['administrador'], // Solo el rol de administrador puede ver este enlace
         },
         {

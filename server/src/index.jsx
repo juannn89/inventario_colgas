@@ -122,3 +122,61 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Obtener todos los usuarios
+app.get('/usuarios', checkRole(['administrador']), async (req, res) => {
+    let connection;
+    try {
+        console.log('Conectando a la base de datos para obtener usuarios');
+        connection = await database.getConnection();
+        const [rows] = await connection.query('SELECT id, username, email, role FROM users');
+        console.log('Usuarios obtenidos:', rows);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error en la ruta /usuarios:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+// Actualizar un usuario
+app.put('/usuarios/:id', checkRole(['administrador']), async (req, res) => {
+    const { id } = req.params;
+    const { username, email, role } = req.body;
+    let connection;
+
+    try {
+        console.log(`Actualizando usuario con id: ${id}`);
+        connection = await database.getConnection();
+        await connection.query(
+            'UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?',
+            [username, email, role, id]
+        );
+        console.log(`Usuario ${id} actualizado correctamente`);
+        res.status(200).send('Usuario actualizado');
+    } catch (err) {
+        console.error('Error en la ruta /usuarios/:id:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+// Eliminar un usuario
+app.delete('/usuarios/:id', checkRole(['administrador']), async (req, res) => {
+    const { id } = req.params;
+    let connection;
+
+    try {
+        console.log(`Eliminando usuario con id: ${id}`);
+        connection = await database.getConnection();
+        await connection.query('DELETE FROM users WHERE id = ?', [id]);
+        console.log(`Usuario ${id} eliminado correctamente`);
+        res.status(200).send('Usuario eliminado');
+    } catch (err) {
+        console.error('Error en la ruta /usuarios/:id:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
