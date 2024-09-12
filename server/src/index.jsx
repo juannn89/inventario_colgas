@@ -106,7 +106,7 @@ app.post('/login', async (req, res) => {
             if (isMatch) {
                 console.log('Contraseña correcta, generando token');
                 // Incluye el rol en el payload del token
-                const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, 'your_jwt_secret', { expiresIn: '1h' });
+                const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: user.username }, 'your_jwt_secret', { expiresIn: '1h' });
                 res.json({ token });
             } else {
                 console.log('Contraseña incorrecta para:', email);
