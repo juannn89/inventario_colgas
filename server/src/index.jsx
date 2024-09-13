@@ -65,6 +65,154 @@ app.put('/inventario/:id', checkRole(['administrador']), async (req, res) => {
     }
 });
 
+app.put('/inventario/:id/add', checkRole(['administrador']), async (req, res) => {
+    const { id } = req.params;
+    const { cantidad } = req.body;
+    let connection;
+
+    console.log(`ID recibido en el backend: ${id}`); // Verificar el id recibido
+    console.log(`Cantidad recibida en el backend: ${cantidad}`); // Verificar la cantidad recibida
+
+    try {
+        connection = await database.getConnection();
+        await connection.query(
+            'UPDATE inventario SET cantidad = cantidad + ? WHERE id = ?',
+            [cantidad, id]
+        );
+        console.log(`Cantidad añadida al inventario para el item ${id}`);
+        res.status(200).json({ message: 'Cantidad añadida al inventario' });
+    } catch (err) {
+        console.error('Error en la ruta /inventario/:id/add:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+
+// Registrar una solicitud de producto y actualizar el inventario
+app.post('/solicitudes', checkRole(['administrador', 'usuario']), async (req, res) => {
+    const { producto_id, cantidad } = req.body;
+    const usuario_id = req.user.id;
+    let connection;
+
+    try {
+        connection = await database.getConnection();
+
+        // Verificar si hay suficiente cantidad en inventario
+        const [inventario] = await connection.query('SELECT cantidad FROM inventario WHERE id = ?', [producto_id]);
+        if (inventario.length === 0 || inventario[0].cantidad < cantidad) {
+            return res.status(400).json({ success: false, error: 'Cantidad insuficiente en inventario' });
+        }
+
+        // Registrar la solicitud
+        await connection.query(
+            'INSERT INTO solicitudes (producto_id, usuario_id, cantidad, estado) VALUES (?, ?, ?, ?)',
+            [producto_id, usuario_id, cantidad, 'pendiente']
+        );
+
+        // Descontar la cantidad del inventario
+        await connection.query(
+            'UPDATE inventario SET cantidad = cantidad - ? WHERE id = ?',
+            [cantidad, producto_id]
+        );
+
+        res.status(201).json({ success: true, message: 'Solicitud registrada' });
+    } catch (err) {
+        console.error('Error en la ruta /solicitudes:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.get('/solicitudes', checkRole(['administrador']), async (req, res) => {
+    let connection;
+
+    try {
+        console.log('Obteniendo solicitudes pendientes');
+        connection = await database.getConnection();
+        const [rows] = await connection.query(
+            'SELECT s.id, i.nombre AS producto, s.cantidad, u.username AS usuario, s.estado ' +
+            'FROM solicitudes s ' +
+            'JOIN inventario i ON s.producto_id = i.id ' +
+            'JOIN users u ON s.usuario_id = u.id ' +
+            'WHERE s.estado = "pendiente"'
+        );
+        res.json(rows);
+    } catch (err) {
+        console.error('Error en la ruta /solicitudes:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.put('/solicitudes/:id/approve', checkRole(['administrador']), async (req, res) => {
+    const { id } = req.params;
+    let connection;
+
+    try {
+        console.log(`Aprobando solicitud con id: ${id}`);
+        connection = await database.getConnection();
+        const [result] = await connection.query('UPDATE solicitudes SET estado = "aprobada" WHERE id = ?', [id]);
+
+        if (result.affectedRows === 0) {
+            // Si no se actualizó ninguna fila, el id podría no existir
+            return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
+        res.status(200).json({ message: 'Solicitud aprobada' });
+    } catch (err) {
+        console.error('Error en la ruta /solicitudes/:id/approve:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.put('/solicitudes/:id/reject', checkRole(['administrador']), async (req, res) => {
+    const { id } = req.params;
+    let connection;
+
+    try {
+        console.log(`Rechazando solicitud con id: ${id}`);
+        connection = await database.getConnection();
+
+        // Primero, actualiza el estado de la solicitud a "rechazada"
+        const [result] = await connection.query('UPDATE solicitudes SET estado = "rechazada" WHERE id = ?', [id]);
+
+        if (result.affectedRows === 0) {
+            // Si no se actualizó ninguna fila, el id podría no existir
+            console.log('No se encontró ninguna solicitud con el id proporcionado.');
+            return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
+        // Luego, obtén los detalles de la solicitud para actualizar el inventario
+        const [solicitud] = await connection.query('SELECT producto_id, cantidad FROM solicitudes WHERE id = ?', [id]);
+
+        if (solicitud.length === 0) {
+            return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
+        const { producto_id, cantidad } = solicitud[0];
+
+        // Reintegra la cantidad al inventario
+        await connection.query(
+            'UPDATE inventario SET cantidad = cantidad + ? WHERE id = ?',
+            [cantidad, producto_id]
+        );
+
+        res.status(200).json({ message: 'Solicitud rechazada y cantidad reintegrada al inventario' });
+    } catch (err) {
+        console.error('Error en la ruta /solicitudes/:id/reject:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+
 // Registro de Usuario
 app.post('/register', async (req, res) => {
     const { username, password, email } = req.body;

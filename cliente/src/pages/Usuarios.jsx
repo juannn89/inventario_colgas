@@ -11,17 +11,25 @@ export function Usuarios() {
     const [editId, setEditId] = useState(null);
     const [editValues, setEditValues] = useState({ username: '', email: '', role: '' });
 
+    // Cargar usuarios
     useEffect(() => {
         const loadUsuarios = async () => {
             try {
-                const token = localStorage.getItem('token'); // Obtén el token del almacenamiento local
+                const token = localStorage.getItem('token');
+                if (!token) throw new Error('Token no disponible');
+
+                console.log('Token:', token); // Verifica si el token está presente
+                
                 const response = await axios.get(`${API_URL}/usuarios`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
+                
+                console.log('Usuarios cargados:', response.data); // Verifica los datos recibidos
                 setUsuarios(response.data);
             } catch (err) {
+                console.error('Error al cargar usuarios:', err); // Log más detallado
                 setError(err);
             } finally {
                 setLoading(false);
@@ -31,58 +39,79 @@ export function Usuarios() {
         loadUsuarios();
     }, []);
 
+    // Manejar la edición de usuario
     const handleEdit = (usuario) => {
         setEditId(usuario.id);
         setEditValues({ username: usuario.username, email: usuario.email, role: usuario.role });
     };
 
+    // Guardar los cambios
     const handleSave = async () => {
         try {
             const token = localStorage.getItem('token');
+            if (!token) throw new Error('Token no disponible');
+
+            console.log('Guardando cambios para usuario ID:', editId);
             await axios.put(`${API_URL}/usuarios/${editId}`, editValues, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
+
+            // Volver a cargar los usuarios después de guardar
             const response = await axios.get(`${API_URL}/usuarios`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
+            
+            console.log('Usuarios actualizados:', response.data);
             setUsuarios(response.data);
             setEditId(null);
         } catch (err) {
+            console.error('Error al guardar cambios:', err);
             setError(err);
         }
     };
 
+    // Eliminar usuario
     const handleDelete = async (id) => {
         const confirmed = window.confirm('¿Estás seguro de que deseas eliminar este usuario?');
         if (confirmed) {
             try {
                 const token = localStorage.getItem('token');
+                if (!token) throw new Error('Token no disponible');
+
+                console.log('Eliminando usuario ID:', id);
                 await axios.delete(`${API_URL}/usuarios/${id}`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
+
+                // Volver a cargar los usuarios después de eliminar
                 const response = await axios.get(`${API_URL}/usuarios`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
+
+                console.log('Usuarios actualizados después de eliminar:', response.data);
                 setUsuarios(response.data);
             } catch (err) {
+                console.error('Error al eliminar usuario:', err);
                 setError(err);
             }
         }
     };
 
+    // Manejar cambios en los campos de edición
     const handleChange = (e) => {
         const { name, value } = e.target;
         setEditValues({ ...editValues, [name]: value });
     };
 
+    // Verificar estado de carga o error
     if (loading) return <p>Cargando...</p>;
     if (error) return <p>Error: {error.message}</p>;
 
@@ -168,6 +197,7 @@ export function Usuarios() {
     );
 }
 
+// Estilos
 const Container = styled.div`
     height: 100%;
     width: 100%;
@@ -233,4 +263,3 @@ const Button = styled.button`
         }
     }
 `;
-
