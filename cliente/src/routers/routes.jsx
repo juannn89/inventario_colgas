@@ -6,6 +6,7 @@ import { Usuarios } from '../pages/Usuarios';
 import { Informes } from '../pages/Informes';
 import { Register } from '../pages/Register';
 import { Login } from '../pages/Login';
+import { Ingresos } from '../pages/Ingresos'
 import PrivateRoute from './Privateroute'; // Importa el componente PrivateRoute
 
 export function MyRoutes() {
@@ -21,6 +22,7 @@ export function MyRoutes() {
             <Route path="/aprobaciones" element={<PrivateRoute element={Aprobaciones} requiredRoles={['administrador']} />} />
             <Route path="/usuarios" element={<PrivateRoute element={Usuarios} requiredRoles={['administrador']} />} />
             <Route path="/informes" element={<PrivateRoute element={Informes} requiredRoles={['administrador']} />} />
+            <Route path="/Ingresos" element={<PrivateRoute element={Ingresos} requiredRoles={['administrador']} />} />
             
             {/* Redirección por defecto */}
             <Route path="*" element={<Navigate to="/login" />} />

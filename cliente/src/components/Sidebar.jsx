@@ -60,6 +60,12 @@ export function Sidebar({ sidebarOpen, setSidebarOpen }) {
             roles: ['administrador'], // Solo el rol de administrador puede ver este enlace
         },
         {
+            label: "Ingresos",
+            icon: <MdPermDeviceInformation />,
+            to: "/ingresos",
+            roles: ['administrador'], // Solo el rol de administrador puede ver este enlace
+        },
+        {
             label: "Aprobaciones",
             icon: <MdOutlineCheckBox />,
             to: "/aprobaciones",

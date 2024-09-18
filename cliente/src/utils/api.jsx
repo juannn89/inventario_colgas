@@ -18,6 +18,7 @@ export const fetchInventario = async () => {
                 Authorization: `Bearer ${token}` // Incluye el token en los encabezados
             }
         });
+        console.log('Inventario recibido:', response.data); // Verifica la estructura de los datos
         return response.data;
     } catch (error) {
         console.error('Error al obtener inventario:', error.response?.data || error.message);
@@ -26,7 +27,7 @@ export const fetchInventario = async () => {
 };
 
 // Función para obtener las solicitudes
-export const fetchSolicitudes = async () => {
+export const fetchSolicitudes = async (estado) => {
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -36,7 +37,10 @@ export const fetchSolicitudes = async () => {
     console.log('Token:', token);
 
     try {
-        const response = await axios.get(`${API_URL}/solicitudes`, {
+        // Construir la URL con el parámetro de estado si está presente
+        const url = estado ? `${API_URL}/solicitudes?estado=${estado}` : `${API_URL}/solicitudes`;
+
+        const response = await axios.get(url, {
             headers: {
                 Authorization: `Bearer ${token}`
             }

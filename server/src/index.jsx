@@ -1,10 +1,12 @@
 const express = require("express");
+const { check, validationResult } = require('express-validator');
 const morgan = require("morgan");
 const database = require("./database.jsx");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const checkRole = require('./middleware/checkRole.jsx'); // Importa el middleware para verificar roles
+require('dotenv').config();
 
 // Configuración inicial
 const app = express();
@@ -89,6 +91,52 @@ app.put('/inventario/:id/add', checkRole(['administrador']), async (req, res) =>
     }
 });
 
+app.post('/inventario', [
+    check('nombre').notEmpty().withMessage('Nombre es obligatorio'),
+    check('cantidad').isInt({ min: 0 }).withMessage('Cantidad debe ser un número entero positivo')
+], checkRole(['administrador']), async (req, res) => {
+    const { nombre, cantidad } = req.body;
+    let connection;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+        console.log('Conectando a la base de datos para agregar un nuevo item');
+        connection = await database.getConnection();
+        await connection.query(
+            'INSERT INTO inventario (nombre, cantidad) VALUES (?, ?)',
+            [nombre, cantidad]
+        );
+        console.log('Item agregado correctamente');
+        res.status(201).send('Item agregado');
+    } catch (err) {
+        console.error('Error en la ruta /inventario:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.delete('/inventario/:id', checkRole(['administrador']), async (req, res) => {
+    const { id } = req.params;
+    let connection;
+
+    try {
+        console.log(`Conectando a la base de datos para eliminar el item con id: ${id}`);
+        connection = await database.getConnection();
+        await connection.query('DELETE FROM inventario WHERE id = ?', [id]);
+        console.log(`Item ${id} eliminado correctamente`);
+        res.status(200).send('Item eliminado');
+    } catch (err) {
+        console.error('Error en la ruta /inventario/:id:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        if (connection) connection.release();
+    }
+});
 
 // Registrar una solicitud de producto y actualizar el inventario
 app.post('/solicitudes', checkRole(['administrador', 'usuario']), async (req, res) => {
@@ -130,10 +178,10 @@ app.get('/solicitudes', checkRole(['administrador']), async (req, res) => {
     let connection;
 
     try {
-        console.log('Obteniendo solicitudes pendientes');
+        console.log('Obteniendo solicitudes pendientes con fecha de solicitud');
         connection = await database.getConnection();
         const [rows] = await connection.query(
-            'SELECT s.id, i.nombre AS producto, s.cantidad, u.username AS usuario, s.estado ' +
+            'SELECT s.id, i.nombre AS producto, s.cantidad, u.username AS usuario, s.estado, s.fecha_solicitud ' +
             'FROM solicitudes s ' +
             'JOIN inventario i ON s.producto_id = i.id ' +
             'JOIN users u ON s.usuario_id = u.id ' +
@@ -147,6 +195,7 @@ app.get('/solicitudes', checkRole(['administrador']), async (req, res) => {
         if (connection) connection.release();
     }
 });
+
 
 app.put('/solicitudes/:id/approve', checkRole(['administrador']), async (req, res) => {
     const { id } = req.params;
@@ -328,3 +377,36 @@ app.delete('/usuarios/:id', checkRole(['administrador']), async (req, res) => {
         if (connection) connection.release();
     }
 });
+
+app.get('/informes', checkRole(['administrador']), async (req, res) => {
+    let connection;
+    const estado = req.query.estado; // Obtén el estado de la consulta
+
+    try {
+        console.log('Intentando generar el informe con estado:', estado);
+        connection = await database.getConnection();
+        
+        // Consulta SQL con JOIN y filtrado por estado
+        let query = `SELECT s.usuario_id, i.nombre AS producto_nombre, s.cantidad, s.estado, s.fecha_solicitud
+                     FROM solicitudes s
+                     LEFT JOIN inventario i ON s.producto_id = i.id`;
+        
+        // Agregar condición de estado si se proporciona
+        if (estado) {
+            query += ' WHERE s.estado = ?';
+        } else {
+            query += ' WHERE s.estado IN ("aprobada", "rechazada")';
+        }
+
+        const [rows] = await connection.query(query, estado ? [estado] : []);
+        
+        console.log('Informe generado con éxito:', rows);
+        res.json(rows);
+    } catch (err) {
+        console.error('Error al generar el informe:', err);
+        res.status(500).json({ error: 'Error al generar el informe' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
