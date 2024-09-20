@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { fetchInventario } from '../utils/api';
+import logo from '../assets/col.png'; // Importar el logo
 
 const API_URL = 'http://localhost:4000';
 
@@ -88,7 +89,7 @@ export function Inventario() {
         producto.nombre.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Pagination
+    // Paginación
     const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
     const paginatedProducts = filteredProducts.slice(
         (currentPage - 1) * itemsPerPage,
@@ -109,7 +110,11 @@ export function Inventario() {
 
     return (
         <Container>
-            <h1>Inventario</h1>
+            {/* Logo y título en el mismo estilo que la página de inicio */}
+            <Header>
+                <Logo src={logo} alt="Logo COLGAS" />
+                <h2>Inventario COLGAS</h2>
+            </Header>
 
             {/* Campo de búsqueda */}
             <SearchInput
@@ -123,7 +128,7 @@ export function Inventario() {
             <Table>
                 <thead>
                     <tr>
-                        <th>Código</th> {/* Nueva columna para el ID */}
+                        <th>Código</th>
                         <th>Nombre</th>
                         <th>Cantidad</th>
                         <th>Acciones</th>
@@ -133,7 +138,7 @@ export function Inventario() {
                     {paginatedProducts.length > 0 ? (
                         paginatedProducts.map(producto => (
                             <tr key={producto.id}>
-                                <td>{producto.id}</td> {/* Mostrar el ID como Código */}
+                                <td>{producto.id}</td>
                                 <td>{producto.nombre}</td>
                                 <td>{producto.cantidad}</td>
                                 <td>
@@ -143,7 +148,7 @@ export function Inventario() {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="4">No hay productos disponibles.</td> {/* Ajustar el colspan */}
+                            <td colSpan="4">No hay productos disponibles.</td>
                         </tr>
                     )}
                 </tbody>
@@ -169,8 +174,10 @@ export function Inventario() {
                             min="1" 
                         />
                     </p>
-                    <Button onClick={handleSubmitRequest}>Aceptar</Button>
-                    <Button onClick={handleCancelRequest}>Cancelar</Button>
+                    <div className="button-container">
+                        <Button onClick={handleSubmitRequest}>Aceptar</Button>
+                        <Button onClick={handleCancelRequest}>Cancelar</Button>
+                    </div>
                 </Dialog>
             )}
 
@@ -181,22 +188,42 @@ export function Inventario() {
 }
 
 const Container = styled.div`
-    height: 100%;
-    width: 100%;
-    background: ${(props) => props.theme.bg3};
-    padding: 2% 5%;
+    height: 100vh;
+    width: 100;
+    background: ${(props) => props.theme.bg}; /* Fondo principal del contenedor */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 10px;
     box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal */
+`;
 
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
+const Header = styled.header`
+    width: 100%;
+    max-width: 600px;
+    background: ${(props) => props.theme.bg}; /* Fondo del encabezado */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+`;
+
+const Logo = styled.img`
+    height: 60px;
+    margin-right: 20px;
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
-    background: #fff;
+    background: ${(props) => props.theme.bg};
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 
@@ -207,11 +234,11 @@ const Table = styled.table`
     }
 
     th {
-        background-color: #f4f4f4;
+        background-color: ${(props) => props.theme.bg3};; /* Encabezado gris claro */
     }
 
     tr:hover {
-        background-color: #f1f1f1;
+        background-color: #f7f7f7; /* Sombra gris claro */
     }
 `;
 
@@ -227,14 +254,15 @@ const SearchInput = styled.input`
 
 const Button = styled.button`
     padding: 10px 20px;
-    background-color: #28a745;
+    background-color: #007BFF; /* Botones azules */
     color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    margin-right: 10px; /* Espacio entre botones */
 
     &:hover {
-        background-color: #218838;
+        background-color: #0056b3;
     }
 
     &:disabled {
@@ -259,22 +287,23 @@ const Dialog = styled.div`
     left: 50%;
     transform: translate(-50%, -50%);
     background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-
+    width: 300px; /* Ajusta el tamaño del cuadro de diálogo */
+    
     h2 {
-        margin-top: 0;
+        margin-bottom: 20px;
     }
 
     p {
-        margin: 10px 0;
+        margin-bottom: 15px;
     }
 
     input {
-        padding: 5px;
+        padding: 8px;
         margin-left: 10px;
-        width: 60px;
+        width: 80
     }
 `;

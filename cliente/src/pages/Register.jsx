@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom'; // Asegúrate de importar useNavigate
+import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import logo from '../assets/col.png'; // Asegúrate de que la ruta sea correcta
 
 export function Register() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [email, setEmail] = useState('');
     const [error, setError] = useState(null);
-    const navigate = useNavigate(); // Hook para redirigir
+    const navigate = useNavigate();
 
     const handleRegister = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:4000/register', { 
-                username, 
-                password, 
-                email, 
-                role: 'usuario' // Asegurarse de que se registre como "usuario"
+            await axios.post('http://localhost:4000/register', {
+                username,
+                password,
+                email,
+                role: 'usuario'
             });
             alert('Registro exitoso');
-            navigate('/login'); // Redirigir al login después de un registro exitoso
+            navigate('/login');
         } catch (err) {
             setError(err.response?.data?.error || 'Error en el registro');
         }
@@ -28,6 +29,10 @@ export function Register() {
 
     return (
         <Container>
+            <Header>
+                <img src={logo} alt="Logo COLGAS" />
+                <h1>Bienvenido al sistema de inventario COLGAS</h1>
+            </Header>
             <FormWrapper>
                 <h2>Registro</h2>
                 <form onSubmit={handleRegister}>
@@ -52,7 +57,7 @@ export function Register() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                     />
-                    <Button type="submit">Register</Button>
+                    <Button type="submit">Registrar</Button>
                 </form>
                 {error && <ErrorText>{error}</ErrorText>}
                 <LinkWrapper>
@@ -65,41 +70,70 @@ export function Register() {
 
 const Container = styled.div`
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: #f4f4f9; /* Fondo gris claro para un estilo formal */
+`;
+
+const Header = styled.div`
+    text-align: center;
+    margin-bottom: 40px; /* Espacio entre el encabezado y el formulario */
+
+    img {
+        width: 100px;
+        margin-bottom: 10px;
+    }
+
+    h1 {
+        font-size: 18px;
+        color: #333;
+        margin: 0;
+    }
 `;
 
 const FormWrapper = styled.div`
-    background: rgba(255, 255, 255, 0.8);
+    background: #fff;
     padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Sombra suave */
     max-width: 400px;
     width: 100%;
     text-align: center;
+    border: 1px solid #e0e0e0; /* Borde gris claro */
+
+    h2 {
+        margin-bottom: 20px;
+        font-size: 18px; /* Tamaño de fuente del encabezado */
+        color: #333;
+        font-weight: bold; /* Negrilla */
+        font-family: 'Arial', sans-serif; /* Mismo tipo de fuente que el h1 en el Header */
+    }
 `;
 
 const Input = styled.input`
     display: block;
     width: 100%;
     margin-bottom: 15px;
-    padding: 10px;
+    padding: 12px; /* Espaciado más grande */
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 4px;
+    font-size: 16px; /* Fuente más grande */
+    box-sizing: border-box;
 `;
 
 const Button = styled.button`
     width: 100%;
-    padding: 10px;
-    background-color: #4CAF50;
+    padding: 12px;
+    background-color: #007BFF; /* Azul */
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
+    font-size: 16px; /* Fuente más grande */
     cursor: pointer;
     &:hover {
-        background-color: #45a049;
+        background-color: #0056b3;
     }
 `;
 
@@ -119,4 +153,3 @@ const StyledLink = styled(Link)`
         text-decoration: underline;
     }
 `;
-

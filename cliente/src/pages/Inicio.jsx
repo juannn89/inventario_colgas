@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import logo from '../assets/col.png'; 
 
 export function Inicio() {
     const [userInfo, setUserInfo] = useState({ name: '', role: '' });
@@ -7,24 +9,28 @@ export function Inicio() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        console.log('Token:', token);
 
         if (token) {
             try {
-                // Decodificar el token
                 const decodedToken = JSON.parse(atob(token.split('.')[1]));
-                console.log('Decoded Token:', decodedToken);
-
-                // Asegúrate de que el nombre y el rol existan en el payload
                 setUserInfo({ 
                     name: decodedToken.name || 'Desconocido', 
                     role: decodedToken.role || 'Sin rol' 
                 });
 
                 if (decodedToken.role === 'administrador') {
-                    setFunctions(['Gestionar Inventario', 'Aprobar Solicitudes', 'Ver Informes', 'Gestionar Usuarios']);
+                    setFunctions([
+                        { name: 'Gestionar Inventario', path: '/inventario' },
+                        { name: 'Aprobar Solicitudes', path: '/aprobaciones' },
+                        { name: 'Ver Informes', path: '/informes' },
+                        { name: 'Gestionar Usuarios', path: '/usuarios' }
+                    ]);
                 } else {
-                    setFunctions(['Ver Inventario', 'Solicitar Aprobaciones', 'Ver Informes']);
+                    setFunctions([
+                        { name: 'Ver Inventario', path: '/inventario' },
+                        { name: 'Solicitar Aprobaciones', path: '/solicitudes' },
+                        { name: 'Ver Informes', path: '/informes' }
+                    ]);
                 }
             } catch (error) {
                 console.error('Error al decodificar el token:', error);
@@ -37,53 +43,100 @@ export function Inicio() {
 
     return (
         <Container>
-            <h1>Bienvenido, {userInfo.name}!</h1>
-            <h2>Tu rol: {userInfo.role}</h2>
-            <h3>Funciones permitidas:</h3>
-            <ul>
-                {functions.map((func, index) => (
-                    <li key={index}>{func}</li>
-                ))}
-            </ul>
+            <Header>
+                <Logo src={logo} alt="Logo de COLGAS" />
+                <h2>Sistema de inventario COLGAS</h2>
+            </Header>
+            <Content>
+                <h3>{userInfo.name}</h3>
+                <h3>Tu rol: {userInfo.role}.</h3>
+                <h3>Funciones permitidas:</h3>
+                <Menu>
+                    {functions.map((func, index) => (
+                        <MenuItem key={index}>
+                            <StyledLink to={func.path}>{func.name}</StyledLink>
+                        </MenuItem>
+                    ))}
+                </Menu>
+            </Content>
         </Container>
     );
 }
 
 const Container = styled.div`
-    height: 100%;
-    width: 100%;
-    background: ${({ theme }) => theme.bg3};
+    height: 100vh;
+    width: 100;
+    background: ${(props) => props.theme.bg}; /* Fondo principal del contenedor */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-
-    h1 {
-        margin: 0;
-        padding: 20px;
-        font-size: 2em;
-    }
-
-    h2 {
-        margin: 0;
-        padding: 10px;
-        font-size: 1.5em;
-    }
-
-    h3 {
-        margin: 20px 0 10px;
-        font-size: 1.2em;
-    }
-
-    ul {
-        list-style-type: none;
-        padding: 0;
-    }
-
-    li {
-        padding: 5px;
-        font-size: 1em;
-    }
+    padding: 0 10px;
+    box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal */
 `;
 
+const Header = styled.header`
+    width: 100%;
+    max-width: 600px;
+    background: ${(props) => props.theme.bg}; /* Fondo del encabezado */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+`;
+
+const Logo = styled.img`
+    width: 140px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+`;
+
+const Content = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+    background: ${(props) => props.theme.bg}; /* Fondo del contenido */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+`;
+
+const Menu = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+`;
+
+const MenuItem = styled.div`
+    margin: 5px 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+`;
+
+const StyledLink = styled(Link)`
+    display: block;
+    padding: 10px 20px;
+    background-color: #007BFF;
+    color: white;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+
+    &:hover {
+        background-color: #0056b3;
+    }
+`;
