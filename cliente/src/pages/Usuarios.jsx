@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import styled from 'styled-components';
+import axios from 'axios';
+import logo from '../assets/col.png'; // Importar el logo
 
 const API_URL = 'http://localhost:4000'; // Dirección de conexión
 
@@ -8,8 +9,11 @@ export function Usuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [editId, setEditId] = useState(null);
     const [editValues, setEditValues] = useState({ username: '', email: '', role: '' });
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Cargar usuarios
     useEffect(() => {
@@ -18,18 +22,13 @@ export function Usuarios() {
                 const token = localStorage.getItem('token');
                 if (!token) throw new Error('Token no disponible');
 
-                console.log('Token:', token); // Verifica si el token está presente
-                
                 const response = await axios.get(`${API_URL}/usuarios`, {
                     headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
-                
-                console.log('Usuarios cargados:', response.data); // Verifica los datos recibidos
                 setUsuarios(response.data);
             } catch (err) {
-                console.error('Error al cargar usuarios:', err); // Log más detallado
                 setError(err);
             } finally {
                 setLoading(false);
@@ -45,36 +44,29 @@ export function Usuarios() {
         setEditValues({ username: usuario.username, email: usuario.email, role: usuario.role });
     };
 
-    // Guardar los cambios
     const handleSave = async () => {
         try {
             const token = localStorage.getItem('token');
             if (!token) throw new Error('Token no disponible');
 
-            console.log('Guardando cambios para usuario ID:', editId);
             await axios.put(`${API_URL}/usuarios/${editId}`, editValues, {
                 headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
-            // Volver a cargar los usuarios después de guardar
             const response = await axios.get(`${API_URL}/usuarios`, {
                 headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                    Authorization: `Bearer ${token}`,
+                },
             });
-            
-            console.log('Usuarios actualizados:', response.data);
             setUsuarios(response.data);
             setEditId(null);
         } catch (err) {
-            console.error('Error al guardar cambios:', err);
             setError(err);
         }
     };
 
-    // Eliminar usuario
     const handleDelete = async (id) => {
         const confirmed = window.confirm('¿Estás seguro de que deseas eliminar este usuario?');
         if (confirmed) {
@@ -82,42 +74,72 @@ export function Usuarios() {
                 const token = localStorage.getItem('token');
                 if (!token) throw new Error('Token no disponible');
 
-                console.log('Eliminando usuario ID:', id);
                 await axios.delete(`${API_URL}/usuarios/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
 
-                // Volver a cargar los usuarios después de eliminar
                 const response = await axios.get(`${API_URL}/usuarios`, {
                     headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
-
-                console.log('Usuarios actualizados después de eliminar:', response.data);
                 setUsuarios(response.data);
             } catch (err) {
-                console.error('Error al eliminar usuario:', err);
                 setError(err);
             }
         }
     };
 
-    // Manejar cambios en los campos de edición
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setEditValues({ ...editValues, [name]: value });
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page on search
     };
 
-    // Verificar estado de carga o error
+    const filteredUsuarios = usuarios.filter((usuario) =>
+        usuario.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Paginación
+    const totalPages = Math.ceil(filteredUsuarios.length / itemsPerPage);
+    const paginatedUsuarios = filteredUsuarios.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
     if (loading) return <p>Cargando...</p>;
     if (error) return <p>Error: {error.message}</p>;
 
     return (
         <Container>
-            <h1>Usuarios</h1>
+            {/* Logo y título en el mismo estilo que la página de inventario */}
+            <Header>
+                <Logo src={logo} alt="Logo COLGAS" />
+                <h2>Usuarios del Sistema</h2>
+            </Header>
+
+            {/* Campo de búsqueda */}
+            <SearchInput
+                type="text"
+                placeholder="Buscar usuario..."
+                value={searchTerm}
+                onChange={handleSearch}
+            />
+
+            {/* Tabla de usuarios */}
             <Table>
                 <thead>
                     <tr>
@@ -129,8 +151,8 @@ export function Usuarios() {
                     </tr>
                 </thead>
                 <tbody>
-                    {usuarios.length > 0 ? (
-                        usuarios.map(usuario => (
+                    {paginatedUsuarios.length > 0 ? (
+                        paginatedUsuarios.map((usuario) => (
                             <tr key={usuario.id}>
                                 <td>{usuario.id}</td>
                                 <td>
@@ -139,7 +161,12 @@ export function Usuarios() {
                                             type="text"
                                             name="username"
                                             value={editValues.username}
-                                            onChange={handleChange}
+                                            onChange={(e) =>
+                                                setEditValues({
+                                                    ...editValues,
+                                                    username: e.target.value,
+                                                })
+                                            }
                                         />
                                     ) : (
                                         usuario.username
@@ -151,7 +178,12 @@ export function Usuarios() {
                                             type="email"
                                             name="email"
                                             value={editValues.email}
-                                            onChange={handleChange}
+                                            onChange={(e) =>
+                                                setEditValues({
+                                                    ...editValues,
+                                                    email: e.target.value,
+                                                })
+                                            }
                                         />
                                     ) : (
                                         usuario.email
@@ -162,7 +194,12 @@ export function Usuarios() {
                                         <Select
                                             name="role"
                                             value={editValues.role}
-                                            onChange={handleChange}
+                                            onChange={(e) =>
+                                                setEditValues({
+                                                    ...editValues,
+                                                    role: e.target.value,
+                                                })
+                                            }
                                         >
                                             <option value="administrador">Administrador</option>
                                             <option value="usuario">Usuario</option>
@@ -193,16 +230,60 @@ export function Usuarios() {
                     )}
                 </tbody>
             </Table>
+
+            {/* Botones de paginación */}
+            <Pagination>
+                <Button onClick={handlePreviousPage} disabled={currentPage === 1}>
+                    Anterior
+                </Button>
+                <span>Página {currentPage} de {totalPages}</span>
+                <Button onClick={handleNextPage} disabled={currentPage === totalPages}>
+                    Siguiente
+                </Button>
+            </Pagination>
         </Container>
     );
 }
 
 // Estilos
 const Container = styled.div`
-    height: 100%;
+    height: 100vh;
+    width: 100;
+    background: ${(props) => props.theme.bg}; /* Fondo principal del contenedor */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal */
+`;
+
+const Header = styled.header`
     width: 100%;
-    background: ${(props) => props.theme.bg3};
-    padding: 20px;
+    max-width: 600px;
+    background: ${(props) => props.theme.bg}; /* Fondo del encabezado */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+`;
+
+const Logo = styled.img`
+    height: 60px;
+    margin-right: 20px;
+`;
+
+const SearchInput = styled.input`
+    width: 100%;
+    padding: 10px;
+    margin-top: 20px;
+    font-size: 16px;
+    box-sizing: border-box;
 `;
 
 const Table = styled.table`
@@ -218,12 +299,7 @@ const Table = styled.table`
     }
 
     th {
-        background-color: #f4f4f4;
-    }
-    
-    td input {
-        width: 100%;
-        box-sizing: border-box;
+        background-color: ${(props) => props.theme.bg3};
     }
 `;
 
@@ -231,6 +307,7 @@ const Input = styled.input`
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 8px;
+    width: 100%;
     box-sizing: border-box;
 `;
 
@@ -238,8 +315,8 @@ const Select = styled.select`
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 8px;
-    box-sizing: border-box;
     width: 100%;
+    box-sizing: border-box;
 `;
 
 const Button = styled.button`
@@ -254,7 +331,7 @@ const Button = styled.button`
     &:hover {
         background-color: #0056b3;
     }
-    
+
     &:last-child {
         background-color: #dc3545;
 
@@ -263,3 +340,11 @@ const Button = styled.button`
         }
     }
 `;
+
+const Pagination = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+`;
+

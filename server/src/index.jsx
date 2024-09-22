@@ -6,6 +6,7 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const checkRole = require('./middleware/checkRole.jsx'); // Importa el middleware para verificar roles
+const mailService = require('./mailService.jsx');
 require('dotenv').config();
 
 // Configuración inicial
@@ -204,11 +205,32 @@ app.put('/solicitudes/:id/approve', checkRole(['administrador']), async (req, re
     try {
         console.log(`Aprobando solicitud con id: ${id}`);
         connection = await database.getConnection();
-        const [result] = await connection.query('UPDATE solicitudes SET estado = "aprobada" WHERE id = ?', [id]);
 
-        if (result.affectedRows === 0) {
-            // Si no se actualizó ninguna fila, el id podría no existir
+        const [solicitud] = await connection.query('SELECT * FROM solicitudes WHERE id = ?', [id]);
+        if (solicitud.length === 0) {
             return res.status(404).json({ error: 'Solicitud no encontrada' });
+        }
+
+        const { usuario_id, producto_id, cantidad } = solicitud[0];
+        console.log('Solicitud obtenida:', solicitud[0]);
+
+        await connection.query('UPDATE solicitudes SET estado = "aprobada" WHERE id = ?', [id]);
+
+        const [usuario] = await connection.query('SELECT username, email FROM users WHERE id = ?', [usuario_id]);
+        
+        if (usuario.length > 0) {
+            const productoNombre = await getProductoNombre(producto_id, connection);
+            console.log('Nombre del producto:', productoNombre);
+
+            const data = {
+                username: usuario[0].username,
+                cantidad,
+                producto: productoNombre, // Nombre del producto
+                estado: 'aprobada'
+            };
+
+            const pdfPath = await mailService.createPdf(data);
+            await mailService.sendMail(usuario[0].email, 'Solicitud Aprobada', 'Su solicitud ha sido aprobada.', pdfPath);
         }
 
         res.status(200).json({ message: 'Solicitud aprobada' });
@@ -228,38 +250,62 @@ app.put('/solicitudes/:id/reject', checkRole(['administrador']), async (req, res
         console.log(`Rechazando solicitud con id: ${id}`);
         connection = await database.getConnection();
 
-        // Primero, actualiza el estado de la solicitud a "rechazada"
+        // Actualiza el estado de la solicitud a "rechazada"
         const [result] = await connection.query('UPDATE solicitudes SET estado = "rechazada" WHERE id = ?', [id]);
 
         if (result.affectedRows === 0) {
-            // Si no se actualizó ninguna fila, el id podría no existir
-            console.log('No se encontró ninguna solicitud con el id proporcionado.');
             return res.status(404).json({ error: 'Solicitud no encontrada' });
         }
 
-        // Luego, obtén los detalles de la solicitud para actualizar el inventario
-        const [solicitud] = await connection.query('SELECT producto_id, cantidad FROM solicitudes WHERE id = ?', [id]);
-
+        // Obtiene los detalles de la solicitud rechazada
+        const [solicitud] = await connection.query('SELECT producto_id, cantidad, usuario_id FROM solicitudes WHERE id = ?', [id]);
+        console.log('Solicitud obtenida:', solicitud);
         if (solicitud.length === 0) {
-            return res.status(404).json({ error: 'Solicitud no encontrada' });
+            return res.status(404).json({ error: 'Solicitud no encontrada en la consulta' });
         }
+        
+        const { producto_id, cantidad, usuario_id } = solicitud[0];
 
-        const { producto_id, cantidad } = solicitud[0];
+        console.log('Solicitud rechazada:', solicitud[0]);
 
-        // Reintegra la cantidad al inventario
+        // Reintegrar la cantidad al inventario
         await connection.query(
             'UPDATE inventario SET cantidad = cantidad + ? WHERE id = ?',
             [cantidad, producto_id]
         );
 
+        const [usuario] = await connection.query('SELECT username, email FROM users WHERE id = ?', [usuario_id]);
+        
+        if (usuario.length > 0) {
+            const productoNombre = await getProductoNombre(producto_id, connection);
+            console.log('Nombre del producto rechazado:', productoNombre);
+
+            const data = {
+                username: usuario[0].username,
+                cantidad,
+                producto: productoNombre, // Nombre del producto
+                estado: 'rechazada'
+            };
+
+            const pdfPath = await mailService.createPdf(data);
+            await mailService.sendMail(usuario[0].email, 'Solicitud Rechazada', 'Su solicitud ha sido rechazada.', pdfPath);
+        }
+
         res.status(200).json({ message: 'Solicitud rechazada y cantidad reintegrada al inventario' });
     } catch (err) {
         console.error('Error en la ruta /solicitudes/:id/reject:', err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: 'Error en el servidor. Intente nuevamente más tarde.' });
     } finally {
         if (connection) connection.release();
     }
 });
+
+// Función auxiliar para obtener el nombre del producto basado en su ID
+async function getProductoNombre(productoId, connection) {
+    const [producto] = await connection.query('SELECT nombre FROM inventario WHERE id = ?', [productoId]);
+    console.log('Producto encontrado:', producto);
+    return producto.length > 0 ? producto[0].nombre : 'Producto no encontrado';
+}
 
 
 // Registro de Usuario
@@ -409,4 +455,5 @@ app.get('/informes', checkRole(['administrador']), async (req, res) => {
         if (connection) connection.release();
     }
 });
+
 

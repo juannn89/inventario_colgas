@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import axios from 'axios'; // Asegúrate de importar axios
-import { fetchSolicitudes } from '../utils/api'; // Asegúrate de usar la ruta correcta para tu archivo de API
+import axios from 'axios';
+import { fetchSolicitudes } from '../utils/api';
+import logo from '../assets/col.png';
 
-const API_URL = 'http://localhost:4000'; // Define la URL de la API aquí si no está en api.js
+const API_URL = 'http://localhost:4000';
 
 export function Aprobaciones() {
     const [solicitudes, setSolicitudes] = useState([]);
@@ -27,12 +28,14 @@ export function Aprobaciones() {
 
     const handleApprove = async (solicitudId) => {
         try {
-            const token = localStorage.getItem('token'); // Obtener el token del almacenamiento local
+            const token = localStorage.getItem('token');
+    
             await axios.put(`${API_URL}/solicitudes/${solicitudId}/approve`, {}, {
                 headers: {
-                    Authorization: `Bearer ${token}` // Incluir el token en el encabezado
+                    Authorization: `Bearer ${token}`
                 }
             });
+    
             setSolicitudes(prevSolicitudes =>
                 prevSolicitudes.filter(solicitud => solicitud.id !== solicitudId)
             );
@@ -41,30 +44,33 @@ export function Aprobaciones() {
             setError(err);
         }
     };
-
+    
     const handleReject = async (solicitudId, productoId, cantidad) => {
         try {
-            const token = localStorage.getItem('token'); // Obtener el token del almacenamiento local
-
-            // Primero rechaza la solicitud
-            await axios.put(`${API_URL}/solicitudes/${solicitudId}/reject`, {}, {
+            const token = localStorage.getItem('token');
+    
+            // Primero, rechazar la solicitud
+            const response = await axios.put(`${API_URL}/solicitudes/${solicitudId}/reject`, {}, {
                 headers: {
-                    Authorization: `Bearer ${token}` // Incluir el token en el encabezado
+                    Authorization: `Bearer ${token}`
                 }
             });
 
-            // Luego, reintegra la cantidad al inventario
-            if (productoId) {  // Asegúrate de que productoId esté definido
-                await axios.put(`${API_URL}/inventario/${productoId}/add`, { cantidad }, {
-                    headers: {
-                        Authorization: `Bearer ${token}` // Incluir el token en el encabezado
-                    }
-                });
-            } else {
-                console.error('ID del producto no está definido');
+            if (response.status === 200) {
+                // Luego, verificar y actualizar el inventario
+                if (productoId && cantidad) {
+                    await axios.put(`${API_URL}/inventario/${productoId}/add`, { cantidad }, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                } else {
+                    console.error('ID del producto o cantidad no están definidos');
+                    throw new Error('ID del producto o cantidad no están definidos');
+                }
             }
 
-            // Actualiza el estado de solicitudes
+            // Filtrar la solicitud rechazada
             setSolicitudes(prevSolicitudes =>
                 prevSolicitudes.filter(solicitud => solicitud.id !== solicitudId)
             );
@@ -79,7 +85,10 @@ export function Aprobaciones() {
 
     return (
         <Container>
-            <h1>Aprobaciones</h1>
+            <Header>
+                <Logo src={logo} alt="Logo COLGAS" />
+                <h1>Aprobaciones</h1>
+            </Header>
             <Table>
                 <thead>
                     <tr>
@@ -99,7 +108,7 @@ export function Aprobaciones() {
                             <td>{solicitud.usuario}</td>
                             <td>
                                 <Button onClick={() => handleApprove(solicitud.id)}>Aceptar</Button>
-                                <Button onClick={() => handleReject(solicitud.id, solicitud.producto_id, solicitud.cantidad)}>Rechazar</Button>
+                                <Button danger onClick={() => handleReject(solicitud.id, solicitud.producto_id, solicitud.cantidad)}>Rechazar</Button>
                             </td>
                         </tr>
                     ))}
@@ -109,17 +118,43 @@ export function Aprobaciones() {
     );
 }
 
+// Estilos (Container, Header, Logo, Table y Button deben ser definidos aquí)
+
+
 const Container = styled.div`
-    height: 100%;
+    height: 100vh;
     width: 100%;
-    background: ${(props) => props.theme.bg3};
-    padding: 2% 5%;
+    background: ${(props) => props.theme.bg};
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+`;
+
+const Header = styled.header`
+    width: 100%;
+    max-width: 600px;
+    background: ${(props) => props.theme.bg};
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #e0e0e0;
     box-sizing: border-box;
 
     h1 {
-        text-align: center;
-        margin-bottom: 20px;
+        margin-left: 0;
     }
+`;
+
+const Logo = styled.img`
+    width: 130px;
+    height: auto;
 `;
 
 const Table = styled.table`
@@ -146,14 +181,14 @@ const Table = styled.table`
 
 const Button = styled.button`
     padding: 10px 20px;
-    background-color: #28a745;
-    color: #fff;
+    background-color: ${(props) => props.danger ? '#dc3545' : '#007bff'};
+    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     margin-right: 10px;
 
     &:hover {
-        background-color: #218838;
+        background-color: ${(props) => props.danger ? '#c82333' : '#0056b3'};
     }
 `;

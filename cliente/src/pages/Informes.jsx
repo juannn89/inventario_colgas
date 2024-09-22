@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable'; // Importa el plugin de jsPDF para tablas
+import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import logo from '../assets/col.png'; // Importa el logo
 
 const API_URL_SOLICITUDES = 'http://localhost:4000/informes';
 const API_URL_USUARIOS = 'http://localhost:4000/usuarios';
@@ -27,15 +28,13 @@ export function Informes() {
             try {
                 const token = localStorage.getItem('token');
 
-                // Obtener solicitudes
-                const resultSolicitudes = await axios.get(`${API_URL_SOLICITUDES}`, {
+                const resultSolicitudes = await axios.get(API_URL_SOLICITUDES, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
                 setSolicitudes(resultSolicitudes.data);
 
-                // Obtener usuarios
                 const resultUsuarios = await axios.get(API_URL_USUARIOS, {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -54,11 +53,8 @@ export function Informes() {
 
     useEffect(() => {
         if (solicitudes.length > 0 && usuarios.length > 0) {
-            // Mapear el nombre del usuario a las solicitudes
             const solicitudesConUsuario = solicitudes.map(solicitud => {
                 const usuario = usuarios.find(usuario => usuario.id === solicitud.usuario_id);
-
-                // No convertir la fecha, mostrarla como está
                 const fechaSolicitud = formatDate(solicitud.fecha_solicitud);
 
                 return {
@@ -68,7 +64,6 @@ export function Informes() {
                 };
             });
 
-            // Filtrar solicitudes cuando los términos de búsqueda cambian
             setFilteredSolicitudes(
                 solicitudesConUsuario.filter(solicitud =>
                     (solicitud.producto_nombre?.toLowerCase().includes(searchProduct.toLowerCase()) || !searchProduct) &&
@@ -81,11 +76,10 @@ export function Informes() {
     }, [searchProduct, searchUser, searchDate, searchStatus, solicitudes, usuarios]);
 
     const formatDate = (dateString) => {
-        // Asumiendo que la fecha en la base de datos está en formato 'YYYY-MM-DD' o similar
         const date = new Date(dateString);
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes de 1 a 12
-        const day = String(date.getDate()).padStart(2, '0'); // Día de 1 a 31
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
 
@@ -140,7 +134,10 @@ export function Informes() {
 
     return (
         <Container>
-            <h1>Informes</h1>
+            <Header>
+                <Logo src={logo} alt="Logo COLGAS" />
+                <h1>Informes</h1>
+            </Header>
 
             <SearchInput
                 type="text"
@@ -224,16 +221,43 @@ export function Informes() {
 }
 
 const Container = styled.div`
-    height: 100%;
-    width: 100%;
-    background: ${(props) => props.theme.bg3};
-    padding: 2% 5%;
+    height: 100vh;
+    width: 100;
+    background: ${(props) => props.theme.bg}; /* Fondo principal del contenedor */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px;
     box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal */
 
     h1 {
         text-align: center;
         margin-bottom: 20px;
     }
+`;
+
+const Header = styled.header`
+    width: 100%;
+    max-width: 600px;
+    background: ${(props) => props.theme.bg}; /* Fondo del encabezado */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+    h1 {
+        margin-left: 10px;
+    }
+`;
+
+const Logo = styled.img`
+    width: 130px; /* Ajusta el tamaño según sea necesario */
+    height: auto;
 `;
 
 const Table = styled.table`
@@ -263,57 +287,50 @@ const SearchInput = styled.input`
     width: 100%;
     margin-bottom: 20px;
     padding: 10px;
-    font-size: 16px;
     border: 1px solid #ddd;
     border-radius: 4px;
 `;
 
 const ButtonsContainer = styled.div`
     margin-bottom: 20px;
-    text-align: center;
 `;
 
 const ExportButton = styled.button`
-    padding: 10px 20px;
-    font-size: 16px;
+    margin-right: 10px;
+    padding: 10px 15px;
+    background-color: #007BFF; /* Color azul */
+    color: white;
     border: none;
     border-radius: 4px;
-    background-color: #007bff;
-    color: #fff;
     cursor: pointer;
-    margin: 0 10px;
 
     &:hover {
-        background-color: #0056b3;
+        background-color: #0056b3; /* Color azul más oscuro al pasar el mouse */
     }
 `;
 
 const Pagination = styled.div`
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     margin-top: 20px;
 
     button {
-        padding: 10px 20px;
-        font-size: 16px;
+        padding: 10px;
+        margin: 0 5px;
         border: none;
         border-radius: 4px;
-        background-color: #007bff;
-        color: #fff;
         cursor: pointer;
-        margin: 0 10px;
+        background-color: #007BFF; /* Color azul */
+        color: white;
 
         &:disabled {
-            background-color: #cccccc;
+            background-color: #ccc;
             cursor: not-allowed;
         }
 
         &:hover:not(:disabled) {
-            background-color: #0056b3;
+            background-color: #0056b3; /* Color azul más oscuro al pasar el mouse */
         }
-    }
-
-    span {
-        font-size: 16px;
-        margin: 0 10px;
     }
 `;

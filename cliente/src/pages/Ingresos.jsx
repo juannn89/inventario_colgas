@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
+import logo from '../assets/col.png'; // Ruta al logo de la carpeta assets
 
 const API_URL = 'http://localhost:4000';
 
@@ -79,7 +80,6 @@ export function Ingresos() {
                 });
             }
 
-            // Reload products after operation
             const result = await axios.get(`${API_URL}/inventario`, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -109,7 +109,10 @@ export function Ingresos() {
 
     return (
         <Container>
-            <h1>Ingresos</h1>
+            <Header>
+                <img src={logo} alt="Colgas Logo" />
+                <h1>Ingresos</h1>
+            </Header>
 
             <SearchInput
                 type="text"
@@ -118,7 +121,7 @@ export function Ingresos() {
                 onChange={handleSearch}
             />
 
-            <Button onClick={handleAdd}>Agregar Producto</Button>
+            <AddButton onClick={handleAdd}>Agregar Producto</AddButton>
 
             <Table>
                 <thead>
@@ -137,8 +140,8 @@ export function Ingresos() {
                                 <td>{producto.nombre}</td>
                                 <td>{producto.cantidad}</td>
                                 <td>
-                                    <Button onClick={() => handleEdit(producto)}>Editar</Button>
-                                    <Button onClick={() => handleDelete(producto)}>Eliminar</Button>
+                                    <ActionButton onClick={() => handleEdit(producto)}>Editar</ActionButton>
+                                    <ActionButton onClick={() => handleDelete(producto)}>Eliminar</ActionButton>
                                 </td>
                             </tr>
                         ))
@@ -156,16 +159,16 @@ export function Ingresos() {
                     {dialogType !== 'delete' && (
                         <>
                             <p>Nombre:
-                                <input 
-                                    type="text" 
-                                    value={newProduct.nombre} 
+                                <DialogInput
+                                    type="text"
+                                    value={newProduct.nombre}
                                     onChange={(e) => setNewProduct({ ...newProduct, nombre: e.target.value })}
                                 />
                             </p>
                             <p>Cantidad:
-                                <input 
-                                    type="number" 
-                                    value={newProduct.cantidad} 
+                                <DialogInput
+                                    type="number"
+                                    value={newProduct.cantidad}
                                     onChange={(e) => setNewProduct({ ...newProduct, cantidad: e.target.value })}
                                     min="0"
                                 />
@@ -175,8 +178,12 @@ export function Ingresos() {
                     {dialogType === 'delete' && (
                         <p>¿Estás seguro de que deseas eliminar el producto {selectedProduct.nombre}?</p>
                     )}
-                    <Button onClick={handleSave}>{dialogType === 'delete' ? 'Eliminar' : 'Guardar'}</Button>
-                    <Button onClick={handleCancel}>Cancelar</Button>
+                    <DialogButtonContainer>
+                        <DialogButton onClick={handleSave}>
+                            {dialogType === 'delete' ? 'Eliminar' : 'Guardar'}
+                        </DialogButton>
+                        <DialogButton onClick={handleCancel}>Cancelar</DialogButton>
+                    </DialogButtonContainer>
                 </Dialog>
             )}
         </Container>
@@ -184,26 +191,41 @@ export function Ingresos() {
 }
 
 const Container = styled.div`
-    height: 100%;
-    width: 100%;
-    background: ${(props) => props.theme.bg3};
-    padding: 2% 5%;
+    height: 100vh;
+    width: 100;
+    background: ${(props) => props.theme.bg}; /* Fondo principal del contenedor */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
     box-sizing: border-box;
+    overflow-x: hidden; /* Evitar scroll horizontal */
+`;
 
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    button + button {
-        margin-left: 10px;
+const Header = styled.header`
+    width: 100%;
+    max-width: 600px;
+    background: ${(props) => props.theme.bg}; /* Fondo del encabezado */
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box;
+    img {
+        width: 130px;
     }
 `;
 
 const Table = styled.table`
     width: 100%;
     border-collapse: collapse;
-    background: #fff;
+    margin-top: 20px;
+    background: ${(props) => props.theme.bg};
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 
@@ -214,7 +236,7 @@ const Table = styled.table`
     }
 
     th {
-        background-color: #f4f4f4;
+        background-color: ${(props) => props.theme.bg3};
     }
 
     tr:hover {
@@ -225,28 +247,39 @@ const Table = styled.table`
 const SearchInput = styled.input`
     display: block;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     padding: 8px;
     box-sizing: border-box;
     border: 1px solid #ccc;
     border-radius: 4px;
 `;
 
-const Button = styled.button`
+const AddButton = styled.button`
     padding: 10px 20px;
-    background-color: #28a745;
+    background-color: #007bff; /* Azul */
     color: #fff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    margin-bottom: 20px;
+    align-self: flex-start; /* Botón a la izquierda */
 
     &:hover {
-        background-color: #218838;
+        background-color: #0056b3;
     }
+`;
 
-    &:disabled {
-        background-color: #ddd;
-        cursor: not-allowed;
+const ActionButton = styled.button`
+    padding: 8px 16px;
+    background-color: #007bff; /* Azul */
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+
+    &:hover {
+        background-color: #0056b3;
     }
 `;
 
@@ -268,10 +301,30 @@ const Dialog = styled.div`
     p {
         margin: 10px 0;
     }
+`;
 
-    input {
-        padding: 5px;
-        margin-left: 10px;
-        width: 60px;
+const DialogInput = styled.input`
+    padding: 5px;
+    margin-left: 10px;
+    width: 200px;
+`;
+
+const DialogButtonContainer = styled.div`
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+`;
+
+const DialogButton = styled.button`
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+        background-color: #0056b3;
     }
 `;
+
